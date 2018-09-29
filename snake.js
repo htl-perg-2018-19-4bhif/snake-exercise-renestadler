@@ -1,18 +1,9 @@
-//Setting the colors of all items
-const chalk = require('chalk');
+//Include the required modules
 const keypress = require('keypress');
-
-//Problem: the colors are not shown in their actual brightness in the built-in terminal
-//Solution: use an foreign terminal window to get the perfect color-vision
-border = chalk.bgRgb(128, 128, 128);
-snakeHead = chalk.bgRgb(0, 255, 0).rgb(255, 0, 0);
-snakeBack = chalk.bgRgb(0, 255, 0).rgb(18, 147, 5);
-apple = chalk.bgRgb(255, 0, 0).rgb(10, 0, 0);
-end = chalk.bgRgb(45, 0, 0).rgb(255, 0, 0);
-
-rownum = parseInt(checkArgs());
+const ansi = require('ansi');
 
 // make `process.stdin` begin emitting "keypress" events
+cursor = ansi(process.stdout);
 keypress(process.stdin);
 // listen for the "keypress" event
 process.stdin.on('keypress', function (ch, key) {
@@ -34,7 +25,9 @@ process.stdin.on('keypress', function (ch, key) {
                 direction = 1;
             }
         } else if (key.name === "escape") {
-            printEnd(field, snakeLength, speedOut, 1);
+            removeStuff(snakePos);
+            removeStuff(applePos);
+            printEnd(1,rownum);
             process.exit(0);
         }
     }
@@ -43,8 +36,8 @@ process.stdin.setRawMode(true);
 process.stdin.resume();
 
 /*Declaration and Initialization of all Variables*/
-var field = initField(rownum);
 var snakeLength = 1; //Current length of the snake
+var appleNum = 1; //Number of apples in the game
 var speed = 500; //Current 'real' speed of the game 
 var speedOut = 5; //Current speed, which is shown as output
 var direction = 1; //Direction which is the snake moving currently
@@ -52,24 +45,29 @@ var lastDirection = direction; //The direction, which the snake has taken before
 var applePos = []; //Positions of the apple(s)
 var snakePos = []; //Position of the parts of the snake
 
-/*Adding the firstpart of the snake and the first apple*/
-var snakeTurn = [];
-snakeTurn.push(Math.round(rownum / 2) - 1);
-snakeTurn.push(Math.round(rownum / 2) - 1);
-snakePos.push(snakeTurn);
-applePos.push(generateApple(rownum, snakePos));
+//Checking the arguments and add the border
+process.stdout.write('\x1Bc');
+rownum = parseInt(checkArgs());
+drawBorder(rownum);
 
-/*Print the field the first time and start the primary game*/
-insertAppleSnake(field, applePos, snakePos);
-printField(field, snakeLength, speedOut);
-playSnake(rownum);
+/*Adding the firstpart of the snake and the first apple(s)*/
+var snakeTurn = [];
+snakeTurn.push(Math.round(rownum / 2));
+snakeTurn.push(Math.round(rownum / 2));
+snakePos.push(snakeTurn);
+for (i = 0; i < appleNum; i++) {
+    applePos.push(generateApple(rownum, snakePos, applePos));
+}
+
+drawSnakes(snakePos);
+drawApples(applePos);
+printInfos(snakeLength,speedOut,rownum+3);
+playSnake();
 
 //Primary function for playing the snake-game 
-function playSnake(rownum) {
+function playSnake() {
     //Timer to wait for the next move of the snake
     const timer = setInterval(() => {
-        //Removing apples and snakes from the field
-        clearField(field);
         lastDirection = direction;
         moveSnake(snakePos, lastDirection);
         //Safing the tail of the snake for use, if an apple is consumed
@@ -78,22 +76,28 @@ function playSnake(rownum) {
         var result = checkSnakeApple(snakePos, applePos, rownum);
         if (result === -1) {
             //Something hit - end the game
-            printEnd(field, snakeLength, speedOut, 0);
+            removeBlock(tail);
+            snakePos.pop();
+            removeStuff(snakePos);
+            removeStuff(applePos);
+            printEnd(0,rownum);
             process.exit(0);
         } else if (result === 1) {
             //An apple is consumed - add the tail and generate a new apple
             snakePos.unshift(tail);
             snakeLength++;
             //Check if snake has max length - if yes, end the game
-            if (snakeLength === Math.pow(rownum - 2, 2)) {
-                clearInterval(timer);
-                printEnd(field, snakeLength, speedOut, 2);
+            if (snakeLength === Math.pow(rownum, 2)) {
+                removeStuff(snakePos);
+                removeStuff(applePos);
+                printEnd(2,rownum);
                 process.exit(0);
-
+            }
+            removeApple(applePos, snakePos[snakePos.length-1]);
+            if (snakeLength+appleNum-1 < Math.pow(rownum, 2)) {
+                applePos.push(generateApple(rownum, snakePos, applePos));
             }
             //Apple generation and reseting of the timer
-            applePos.shift();
-            applePos.push(generateApple(rownum, snakePos));
 
             //increase the speed of the snake
             if (speed - 25 >= 100) {
@@ -102,14 +106,16 @@ function playSnake(rownum) {
             } else {
                 speed = 100;
             }
-            insertAppleSnake(field, applePos, snakePos);
-            printField(field, snakeLength, speedOut);
+            drawSnakes(snakePos);
+            drawApples(applePos);
+            printInfos(snakeLength,speedOut,rownum+3);
             clearInterval(timer);
             return playSnake(rownum);
+        } else {
+            removeBlock(tail);
+            drawSnakes(snakePos);
+            printInfos(snakeLength,speedOut,rownum+3);
         }
-        //Output of the field again
-        insertAppleSnake(field, applePos, snakePos);
-        printField(field, snakeLength, speedOut);
     }, speed);
 }
 
@@ -117,7 +123,7 @@ function playSnake(rownum) {
 function checkArgs() {
     if (process.argv.length === 4) {
         if (process.argv[2] === "-n") {
-            if (parseInt(process.argv[3]) >= 5) {
+            if (parseInt(process.argv[3]) >= 3) {
                 return process.argv[3];
             }
             else {
@@ -139,121 +145,146 @@ function printUsage() {
     process.exit(-1);
 }
 
-//Function for printing the playField including all stub and reset
-function printField(field, snakeLength, speed) {
-    //Clear the console
-    process.stdout.write('\033c');
-
-    //Output the whole field
-    console.log("Press ESC to end the game and have a lot of fun with my snake version:");
-    for (i = 0; i < field.length; i++) {
-        for (n = 0; n < field.length * 2; n++) {
-            if (field[i][n] === '.') {
-                process.stdout.write(border.visible(' '));
-            } else if (field[i][n] === ';') {
-                process.stdout.write(snakeHead.visible(':'));
-            } else if (field[i][n] === ' ') {
-                process.stdout.write(snakeBack.visible('-'));
-            } else if (field[i][n] === 'a') {
-                process.stdout.write(apple.visible('\''));
-            } else {
-                process.stdout.write(' ');
+function removeApple(applePos, snakePos){
+    for(i=0;i<applePos.length;i++){
+        if(applePos[i][0]===snakePos[0]&&applePos[i][1]===snakePos[1]){
+            for(j=i;j<applePos.length-1;j++){
+                applePos[j]=applePos[j+1];
             }
+            applePos.pop();
+            return;
         }
-        console.log();
     }
-    console.log("Points:\t" + (parseInt(snakeLength) - 1));
-    console.log("SnakeLength:\t" + snakeLength);
-    console.log("Speed:\t" + speed);
 }
 
-function printEnd(field, snakeLength, speed, endType) {
-    fieldsize = Math.round(field.length / 2);
-    //Clear the console
-    process.stdout.write('\033c');
-    for (i = 0; i < field.length; i++) {
-        if (i === fieldsize - 1) {
-            for (j = 0; j < field.length - 5; j++) {
-                if (j < 2) {
-                    process.stdout.write(border.visible(' '));
-                } else {
-                    process.stdout.write(end.visible(' '));
-                }
-            }
-            switch (endType) {
-                case 0: process.stdout.write(end.visible("Game Over!")); break;
-                case 1: process.stdout.write(end.visible(" Game End!")); break;
-                case 2: process.stdout.write(end.visible(" Game Won!")); break;
-                default: break;
-            }
-            for (j = field.length + 5; j < field.length * 2; j++) {
-                if (j >= field.length * 2 - 2) {
-                    process.stdout.write(border.visible(' '));
-                } else {
-                    process.stdout.write(end.visible(' '));
-                }
-            }
+//Draw the border for the snake-game
+function drawBorder(rownum) {
+    cursor.bg.grey();
+    for (i = 1; i < rownum * 2 + 5; i++) {
+        cursor.goto(i, 0).write(' ');
+    }
+    for (i = 0; i < rownum * 2 + 5; i++) {
+        cursor.goto(i, rownum + 2).write(' ');
+    }
+    for (i = 0; i < rownum + 2; i++) {
+        cursor.goto(1, i).write(' ');
+        cursor.goto(2, i).write(' ');
+    }
+    for (i = 0; i < rownum + 2; i++) {
+        cursor.goto(rownum * 2 + 3, i).write(' ');
+        cursor.goto(rownum * 2 + 4, i).write(' ');
+    }
+    cursor.reset();
+    process.stdout.write('\x1B[?25l');
+}
+
+//Draw all the apples
+function drawApples(applePos) {
+    process.stdout.write('\x1B[?25h');
+    cursor.bg.red().hex("#100000");
+    for (i = 0; i < applePos.length; i++) {
+        cursor.goto(applePos[i][0] * 2 + 1, applePos[i][1] + 1).write('\'');
+        cursor.goto(applePos[i][0] * 2 + 2, applePos[i][1] + 1).write('\'');
+    }
+    cursor.reset();
+    process.stdout.write('\x1B[?25l');
+}
+
+//Draw all the snakes
+function drawSnakes(snakePos) {
+    process.stdout.write('\x1B[?25h');
+    cursor.bg.green().hex("#000703");
+    for (i = 0; i < snakePos.length; i++) {
+        if (i == snakePos.length - 1) {
+            cursor.bg.green().red();
+            cursor.goto(snakePos[i][0] * 2 + 1, snakePos[i][1] + 1).write(':');
+            cursor.goto(snakePos[i][0] * 2 + 2, snakePos[i][1] + 1).write(':');
         } else {
-            for (n = 0; n < field.length * 2; n++) {
-                if (field[i][n] === '.') {
-                    process.stdout.write(border.visible(' '));
-                } else {
-                    process.stdout.write(end.visible(' '));
-                }
-            }
+            cursor.goto(snakePos[i][0] * 2 + 1, snakePos[i][1] + 1).write('-');
+            cursor.goto(snakePos[i][0] * 2 + 2, snakePos[i][1] + 1).write('-');
         }
-        console.log();
     }
-    console.log("Points:\t" + (parseInt(snakeLength) - 1));
-    console.log("SnakeLength:\t" + snakeLength);
-    console.log("Speed:\t" + speed);
+    cursor.reset();
+    process.stdout.write('\x1B[?25l');
 }
 
-//Initialize the playField before starting the game
-function initField(rownum) {
-    var field = [];
-    for (i = 0; i < rownum; i++) {
-        var fieldWidth = [];
-        if (i === 0 || i == rownum - 1) {
-            for (n = 0; n < rownum * 2; n++) {
-                fieldWidth.push('.');
-            }
-        } else {
-            for (n = 0; n < rownum * 2; n++) {
-                if (n <= 1 || n >= 2 * (rownum - 1)) {
-                    fieldWidth.push('.');
-                } else {
-                    fieldWidth.push('');
-                }
-            }
-        }
-        field.push(fieldWidth);
-    }
-    return field;
+//Print all the infos concerning the game
+function printInfos(snakeLength,speed,rownum){
+    process.stdout.write('\x1B[?25h');
+    cursor.bold();
+    cursor.goto(1,rownum).write("Points:\t" + (parseInt(snakeLength) - 1));
+    cursor.goto(1,rownum+1).write("SnakeLength:\t" + snakeLength);
+    cursor.goto(1,rownum+2).write("Speed:\t" + speed);
+    cursor.reset();
+    process.stdout.write('\x1B[?25l');
+
 }
 
-//Clear the field into the borders
-function clearField(field) {
-    for (i = 1; i < field.length - 1; i++) {
-        for (j = 2; j < field[i].length - 2; j++) {
-            field[i][j] = '';
-        }
+//Remove stuff from one single coordinate
+function removeBlock(pos) {
+    process.stdout.write('\x1B[?25h');
+    cursor.bg.black();
+    cursor.goto(pos[0] * 2 + 1, pos[1] + 1).write(' ');
+    cursor.goto(pos[0] * 2 + 2, pos[1] + 1).write(' ');
+    cursor.reset();
+    process.stdout.write('\x1B[?25l');
+}
+
+//Remove a whole array of coordinates
+function removeStuff(anyPos) {
+    process.stdout.write('\x1B[?25h');
+    cursor.bg.black();
+    for (i = 0; i < anyPos.length; i++) {
+        cursor.goto(anyPos[i][0] * 2 + 1, anyPos[i][1] + 1).write(' ');
+        cursor.goto(anyPos[i][0] * 2 + 2, anyPos[i][1] + 1).write(' ');
     }
+    cursor.reset();
+    process.stdout.write('\x1B[?25l');
+}
+
+//Print the end result: won 
+function printEnd(endType,rownum) {
+    
+    process.stdout.write('\x1B[?25h');
+    cursor.bg.hex("#100000").red();
+    for (i = rownum-5; i < rownum+5; i++) {
+        cursor.goto(i+3, Math.round(rownum/2)).write(' ');
+    }
+    switch (endType) {
+        case 0: 
+        cursor.goto(rownum-2, Math.round(rownum/2)+1).write("Game Over!");break;
+        case 1:
+        cursor.goto(rownum-2, Math.round(rownum/2)+1).write(" Game End!"); break;
+        case 2: 
+        cursor.goto(rownum-2, Math.round(rownum/2)+1).write(" Game Won!");break;
+        default: break;
+    }
+    for (i = rownum-5; i < rownum+5; i++) {
+        cursor.goto(i+3, Math.round(rownum/2)+2).write(' ');
+    }
+    cursor.reset();
+    cursor.goto(1,rownum+6);
+    process.stdout.write('\x1B[?25l');
 }
 
 //Generates a new apple at a random position
-function generateApple(rownum, snakePos) {
-    var applePos = [];
-    applePos.push(Math.floor(Math.random() * (rownum - 2)) + 1);
-    applePos.push(Math.floor(Math.random() * (rownum - 2)) + 1);
+function generateApple(rownum, snakePos, applePos) {
+    var curApple = [];
+    curApple.push(Math.floor(Math.random() * (rownum)) + 1);
+    curApple.push(Math.floor(Math.random() * (rownum)) + 1);
 
     //Checking if the position of the apple is valid
     for (i = 0; i < snakePos.length; i++) {
-        if (snakePos[i][0] === applePos[0] && snakePos[i][1] === applePos[1]) {
-            return generateApple(rownum, snakePos);
+        if (snakePos[i][0] === curApple[0] && snakePos[i][1] === curApple[1]) {
+            return generateApple(rownum, snakePos, applePos);
         }
     }
-    return applePos;
+    for (i = 0; i < applePos.length; i++) {
+        if (applePos[i][0] === curApple[0] && applePos[i][1] === curApple[1]) {
+            return generateApple(rownum, snakePos, applePos);
+        }
+    }
+    return curApple;
 }
 
 //move the snake like that: 0...down 1...right 2...up 3...left
@@ -261,41 +292,21 @@ function moveSnake(snakePos, direction) {
     var curPos = snakePos.length - 1;
     var newPos = [];
     switch (direction) {
-        case 0: newPos.push(snakePos[curPos][0] + 1);
-            newPos.push(snakePos[curPos][1]);
-            break;
-        case 1: newPos.push(snakePos[curPos][0]);
+        case 0: newPos.push(snakePos[curPos][0]);
             newPos.push(snakePos[curPos][1] + 1);
             break;
-        case 2: newPos.push(snakePos[curPos][0] - 1);
+        case 1: newPos.push(snakePos[curPos][0] + 1);
             newPos.push(snakePos[curPos][1]);
             break;
-        case 3: newPos.push(snakePos[curPos][0]);
+        case 2: newPos.push(snakePos[curPos][0]);
             newPos.push(snakePos[curPos][1] - 1);
+            break;
+        case 3: newPos.push(snakePos[curPos][0] - 1);
+            newPos.push(snakePos[curPos][1]);
             break;
         default: break;
     }
     snakePos.push(newPos);
-}
-
-//Insert Apples and Snakes into the field
-function insertAppleSnake(field, applePos, snakePos) {
-    //Insertion of the apple
-    for (i = 0; i < applePos.length; i++) {
-        field[applePos[i][0]][applePos[i][1] * 2] = 'a';
-        field[applePos[i][0]][applePos[i][1] * 2 + 1] = 'a';
-    }
-
-    //Insertion of the snake
-    for (i = 0; i < snakePos.length; i++) {
-        if (i == snakePos.length - 1) {
-            field[snakePos[i][0]][snakePos[i][1] * 2] = ';';
-            field[snakePos[i][0]][snakePos[i][1] * 2 + 1] = ';';
-        } else {
-            field[snakePos[i][0]][snakePos[i][1] * 2] = ' ';
-            field[snakePos[i][0]][snakePos[i][1] * 2 + 1] = ' ';
-        }
-    }
 }
 
 //check if snake collected apple, ran into a wall or simply hit herself
@@ -311,10 +322,10 @@ function checkSnakeApple(snakePos, applePos, rownum) {
     }
 
     //Check if a wall is hit
-    if (snakePos[snakeLength][0] === 0 ||
-        snakePos[snakeLength][1] === 0 ||
-        snakePos[snakeLength][0] === rownum - 1 ||
-        snakePos[snakeLength][1] === rownum - 1) {
+    if (snakePos[snakeLength][0] < 1 ||
+        snakePos[snakeLength][1] < 1 ||
+        snakePos[snakeLength][0] === rownum + 1 ||
+        snakePos[snakeLength][1] === rownum + 1) {
         return -1;
     }
 

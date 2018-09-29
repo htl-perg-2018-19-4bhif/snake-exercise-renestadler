@@ -9,7 +9,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "chalk": "^2.4.1",
+    "ansi": "^0.3.1",
     "keypress": "^0.2.1"
   }
 }
