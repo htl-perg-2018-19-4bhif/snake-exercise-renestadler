@@ -28,6 +28,7 @@ process.stdin.on('keypress', function (ch, key) {
             removeStuff(snakePos);
             removeStuff(applePos);
             printEnd(1, rownum);
+            process.stdout.write('\x1B[?25h');
             process.exit(0);
         }
     }
@@ -49,7 +50,6 @@ var snakePos = []; //Position of the parts of the snake
 process.stdout.write('\x1Bc');
 rownum = parseInt(checkArgs());
 drawBorder(rownum);
-
 /*Adding the firstpart of the snake and the first apple(s)*/
 var snakeTurn = [];
 snakeTurn.push(Math.round(rownum / 2));
@@ -81,6 +81,7 @@ function playSnake() {
             removeStuff(snakePos);
             removeStuff(applePos);
             printEnd(0, rownum);
+            process.stdout.write('\x1B[?25h');
             process.exit(0);
         } else if (result === 1) {
             //An apple is consumed - add the tail and generate a new apple
@@ -91,6 +92,7 @@ function playSnake() {
                 removeStuff(snakePos);
                 removeStuff(applePos);
                 printEnd(2, rownum);
+                process.stdout.write('\x1B[?25h');
                 process.exit(0);
             }
             removeApple(applePos, snakePos[snakePos.length - 1]);
@@ -121,27 +123,57 @@ function playSnake() {
 
 //Check the arguments and return the number of row and cols, you want to play with
 function checkArgs() {
-    if (process.argv.length === 4) {
-        if (process.argv[2] === "-n") {
-            if (parseInt(process.argv[3]) >= 3) {
-                return process.argv[3];
-            }
-            else {
+    if (process.argv.length === 2) {
+        return 10;
+    } else if (process.argv.length === 4) {
+        if (process.argv.indexOf("-n") !== -1) {
+            index = process.argv.indexOf("-n") + 1;
+            if (parseInt(process.argv[index]) < 3) {
                 printUsage();
+            } else {
+                return process.argv[index];
             }
+        } else if (process.argv.indexOf("-a") !== -1) {
+            index = process.argv.indexOf("-a") + 1;
+            if (parseInt(process.argv[index]) < 1 || (parseInt(process.argv[index]) >= Math.pow(10, 2))) {
+                printUsage();
+            } else {
+                appleNum = process.argv[index];
+            }
+            return 10;
         } else {
             printUsage();
         }
-    } else if (process.argv.length === 2) {
-        return 10;
-    } else {
-        printUsage();
+    } else if (process.argv.length === 6) {
+        numRows=10;
+        if (process.argv.indexOf("-n") !== -1) {
+            index = process.argv.indexOf("-n") + 1;
+            if (parseInt(process.argv[index]) < 3) {
+                printUsage();
+            } else {
+                numRows= process.argv[index];
+            }
+        } else{
+            printUsage();
+        }
+        if (process.argv.indexOf("-a") !== -1) {
+            index = process.argv.indexOf("-a") + 1;
+            if (parseInt(process.argv[index]) < 1 || (parseInt(process.argv[index]) >= Math.pow(10, 2))) {
+                printUsage();
+            } else {
+                appleNum = process.argv[index];
+                return numRows;
+            }
+        } else {
+            printUsage();
+        } 
     }
+    printUsage();
 }
 
 //If wrong arguments are used, this method is called to print the right usage of this program
 function printUsage() {
-    console.error("Usage: node <programname> [-n <rownum>]");
+    console.error("Usage: node <programname> [-n <rownum> | -a <applenum>]");
     process.exit(-1);
 }
 
