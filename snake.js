@@ -27,7 +27,7 @@ process.stdin.on('keypress', function (ch, key) {
         } else if (key.name === "escape") {
             removeStuff(snakePos);
             removeStuff(applePos);
-            printEnd(1,rownum);
+            printEnd(1, rownum);
             process.exit(0);
         }
     }
@@ -61,7 +61,7 @@ for (i = 0; i < appleNum; i++) {
 
 drawSnakes(snakePos);
 drawApples(applePos);
-printInfos(snakeLength,speedOut,rownum+3);
+printInfos(snakeLength, speedOut, rownum + 3);
 playSnake();
 
 //Primary function for playing the snake-game 
@@ -80,7 +80,7 @@ function playSnake() {
             snakePos.pop();
             removeStuff(snakePos);
             removeStuff(applePos);
-            printEnd(0,rownum);
+            printEnd(0, rownum);
             process.exit(0);
         } else if (result === 1) {
             //An apple is consumed - add the tail and generate a new apple
@@ -90,11 +90,11 @@ function playSnake() {
             if (snakeLength === Math.pow(rownum, 2)) {
                 removeStuff(snakePos);
                 removeStuff(applePos);
-                printEnd(2,rownum);
+                printEnd(2, rownum);
                 process.exit(0);
             }
-            removeApple(applePos, snakePos[snakePos.length-1]);
-            if (snakeLength+appleNum-1 < Math.pow(rownum, 2)) {
+            removeApple(applePos, snakePos[snakePos.length - 1]);
+            if (snakeLength + appleNum - 1 < Math.pow(rownum, 2)) {
                 applePos.push(generateApple(rownum, snakePos, applePos));
             }
             //Apple generation and reseting of the timer
@@ -108,13 +108,13 @@ function playSnake() {
             }
             drawSnakes(snakePos);
             drawApples(applePos);
-            printInfos(snakeLength,speedOut,rownum+3);
+            printInfos(snakeLength, speedOut, rownum + 3);
             clearInterval(timer);
             return playSnake(rownum);
         } else {
             removeBlock(tail);
             drawSnakes(snakePos);
-            printInfos(snakeLength,speedOut,rownum+3);
+            printInfos(snakeLength, speedOut, rownum + 3);
         }
     }, speed);
 }
@@ -145,11 +145,11 @@ function printUsage() {
     process.exit(-1);
 }
 
-function removeApple(applePos, snakePos){
-    for(i=0;i<applePos.length;i++){
-        if(applePos[i][0]===snakePos[0]&&applePos[i][1]===snakePos[1]){
-            for(j=i;j<applePos.length-1;j++){
-                applePos[j]=applePos[j+1];
+function removeApple(applePos, snakePos) {
+    for (i = 0; i < applePos.length; i++) {
+        if (applePos[i][0] === snakePos[0] && applePos[i][1] === snakePos[1]) {
+            for (j = i; j < applePos.length - 1; j++) {
+                applePos[j] = applePos[j + 1];
             }
             applePos.pop();
             return;
@@ -159,6 +159,7 @@ function removeApple(applePos, snakePos){
 
 //Draw the border for the snake-game
 function drawBorder(rownum) {
+    process.stdout.write('\x1B[?25h');
     cursor.bg.grey();
     for (i = 1; i < rownum * 2 + 5; i++) {
         cursor.goto(i, 0).write(' ');
@@ -209,12 +210,12 @@ function drawSnakes(snakePos) {
 }
 
 //Print all the infos concerning the game
-function printInfos(snakeLength,speed,rownum){
+function printInfos(snakeLength, speed, rownum) {
     process.stdout.write('\x1B[?25h');
     cursor.bold();
-    cursor.goto(1,rownum).write("Points:\t" + (parseInt(snakeLength) - 1));
-    cursor.goto(1,rownum+1).write("SnakeLength:\t" + snakeLength);
-    cursor.goto(1,rownum+2).write("Speed:\t" + speed);
+    cursor.goto(1, rownum).write("Points:\t" + (parseInt(snakeLength) - 1));
+    cursor.goto(1, rownum + 1).write("SnakeLength:\t" + snakeLength);
+    cursor.goto(1, rownum + 2).write("Speed:\t" + speed);
     cursor.reset();
     process.stdout.write('\x1B[?25l');
 
@@ -243,27 +244,27 @@ function removeStuff(anyPos) {
 }
 
 //Print the end result: won 
-function printEnd(endType,rownum) {
-    
+function printEnd(endType, rownum) {
+
     process.stdout.write('\x1B[?25h');
     cursor.bg.hex("#100000").red();
-    for (i = rownum-5; i < rownum+5; i++) {
-        cursor.goto(i+3, Math.round(rownum/2)).write(' ');
+    for (i = rownum - 5; i < rownum + 5; i++) {
+        cursor.goto(i + 3, Math.round(rownum / 2)).write(' ');
     }
     switch (endType) {
-        case 0: 
-        cursor.goto(rownum-2, Math.round(rownum/2)+1).write("Game Over!");break;
+        case 0:
+            cursor.goto(rownum - 2, Math.round(rownum / 2) + 1).write("Game Over!"); break;
         case 1:
-        cursor.goto(rownum-2, Math.round(rownum/2)+1).write(" Game End!"); break;
-        case 2: 
-        cursor.goto(rownum-2, Math.round(rownum/2)+1).write(" Game Won!");break;
+            cursor.goto(rownum - 2, Math.round(rownum / 2) + 1).write(" Game End!"); break;
+        case 2:
+            cursor.goto(rownum - 2, Math.round(rownum / 2) + 1).write(" Game Won!"); break;
         default: break;
     }
-    for (i = rownum-5; i < rownum+5; i++) {
-        cursor.goto(i+3, Math.round(rownum/2)+2).write(' ');
+    for (i = rownum - 5; i < rownum + 5; i++) {
+        cursor.goto(i + 3, Math.round(rownum / 2) + 2).write(' ');
     }
     cursor.reset();
-    cursor.goto(1,rownum+6);
+    cursor.goto(1, rownum + 6);
     process.stdout.write('\x1B[?25l');
 }
 
