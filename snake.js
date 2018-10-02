@@ -138,35 +138,35 @@ function checkArgs() {
             if (parseInt(process.argv[index]) < 1 || (parseInt(process.argv[index]) >= Math.pow(10, 2))) {
                 printUsage();
             } else {
-                appleNum = process.argv[index];
+                appleNum = parseInt(process.argv[index]);
             }
             return 10;
         } else {
             printUsage();
         }
     } else if (process.argv.length === 6) {
-        numRows=10;
+        numRows = 10;
         if (process.argv.indexOf("-n") !== -1) {
             index = process.argv.indexOf("-n") + 1;
             if (parseInt(process.argv[index]) < 3) {
                 printUsage();
             } else {
-                numRows= process.argv[index];
+                numRows = process.argv[index];
             }
-        } else{
+        } else {
             printUsage();
         }
         if (process.argv.indexOf("-a") !== -1) {
             index = process.argv.indexOf("-a") + 1;
-            if (parseInt(process.argv[index]) < 1 || (parseInt(process.argv[index]) >= Math.pow(10, 2))) {
+            if (parseInt(process.argv[index]) < 1 || (parseInt(process.argv[index]) >= Math.pow(numRows, 2))) {
                 printUsage();
             } else {
-                appleNum = process.argv[index];
+                appleNum = parseInt(process.argv[index]);
                 return numRows;
             }
         } else {
             printUsage();
-        } 
+        }
     }
     printUsage();
 }
