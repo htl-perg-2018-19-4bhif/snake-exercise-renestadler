@@ -95,12 +95,12 @@ function playSnake() {
                 process.stdout.write('\x1B[?25h');
                 process.exit(0);
             }
+            newApple = 0;
             removeApple(applePos, snakePos[snakePos.length - 1]);
             if (snakeLength + appleNum - 1 < Math.pow(rownum, 2)) {
-                applePos.push(generateApple(rownum, snakePos, applePos));
+                newApple = generateApple(rownum, snakePos, applePos);
+                applePos.push(newApple);
             }
-            //Apple generation and reseting of the timer
-
             //increase the speed of the snake
             if (speed - 25 >= 100) {
                 speed = speed - 25;
@@ -109,7 +109,9 @@ function playSnake() {
                 speed = 100;
             }
             drawSnakes(snakePos);
-            drawApples(applePos);
+            if (newApple !== 0) {
+                drawApple(newApple);
+            }
             printInfos(snakeLength, speedOut, rownum + 3);
             clearInterval(timer);
             return playSnake(rownum);
@@ -219,6 +221,16 @@ function drawApples(applePos) {
         cursor.goto(applePos[i][0] * 2 + 1, applePos[i][1] + 1).write('\'');
         cursor.goto(applePos[i][0] * 2 + 2, applePos[i][1] + 1).write('\'');
     }
+    cursor.reset();
+    process.stdout.write('\x1B[?25l');
+}
+
+//Draw one apple
+function drawApple(applePos) {
+    process.stdout.write('\x1B[?25h');
+    cursor.bg.red().hex("#100000");
+    cursor.goto(applePos[0] * 2 + 1, applePos[1] + 1).write('\'');
+    cursor.goto(applePos[0] * 2 + 2, applePos[1] + 1).write('\'');
     cursor.reset();
     process.stdout.write('\x1B[?25l');
 }
