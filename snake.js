@@ -108,7 +108,8 @@ function playSnake() {
             } else {
                 speed = 100;
             }
-            drawSnakes(snakePos);
+            drawSnake(snakePos[snakePos.length - 2], false);
+            drawSnake(snakePos[snakePos.length - 1], true);
             if (newApple !== 0) {
                 drawApple(newApple);
             }
@@ -117,7 +118,10 @@ function playSnake() {
             return playSnake(rownum);
         } else {
             removeBlock(tail);
-            drawSnakes(snakePos);
+            if (snakePos.length >= 2) {
+                drawSnake(snakePos[snakePos.length - 2], false);
+            }
+            drawSnake(snakePos[snakePos.length - 1], true);
             printInfos(snakeLength, speedOut, rownum + 3);
         }
     }, speed);
@@ -253,6 +257,21 @@ function drawSnakes(snakePos) {
     process.stdout.write('\x1B[?25l');
 }
 
+//Draw the head of the snake
+function drawSnake(snakePos, isHead) {
+    process.stdout.write('\x1B[?25h');
+    if (isHead) {
+        cursor.bg.green().red();
+        cursor.goto(snakePos[0] * 2 + 1, snakePos[1] + 1).write(':');
+        cursor.goto(snakePos[0] * 2 + 2, snakePos[1] + 1).write(':');
+    } else {
+        cursor.bg.green().hex("#000703");
+        cursor.goto(snakePos[0] * 2 + 1, snakePos[1] + 1).write('-');
+        cursor.goto(snakePos[0] * 2 + 2, snakePos[1] + 1).write('-');
+    }
+    cursor.reset();
+    process.stdout.write('\x1B[?25l');
+}
 //Print all the infos concerning the game
 function printInfos(snakeLength, speed, rownum) {
     process.stdout.write('\x1B[?25h');
