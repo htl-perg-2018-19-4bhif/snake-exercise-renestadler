@@ -8,28 +8,32 @@ keypress(process.stdin);
 // listen for the "keypress" event
 process.stdin.on('keypress', function (ch, key) {
     if (key) {
-        if (key.name === "up") {
-            if (snakeLength === 1 || lastDirection !== 0) {
-                direction = 2;
-            }
-        } else if (key.name === "down") {
-            if (snakeLength === 1 || lastDirection !== 2) {
-                direction = 0;
-            }
-        } else if (key.name === "left") {
-            if (snakeLength === 1 || lastDirection !== 1) {
-                direction = 3;
-            }
-        } else if (key.name === "right") {
-            if (snakeLength === 1 || lastDirection !== 3) {
-                direction = 1;
-            }
-        } else if (key.name === "escape") {
-            removeStuff(snakePos);
-            removeStuff(applePos);
-            printEnd(1, rownum);
-            process.stdout.write('\x1B[?25h');
-            process.exit(0);
+        switch (key.name) {
+            case "up":
+                if (snakeLength === 1 || lastDirection !== 0) {
+                    direction = 2;
+                } break;
+            case "down":
+                if (snakeLength === 1 || lastDirection !== 2) {
+                    direction = 0;
+                } break;
+            case "left":
+                if (snakeLength === 1 || lastDirection !== 1) {
+                    direction = 3;
+                }
+                break;
+            case "right":
+                if (snakeLength === 1 || lastDirection !== 3) {
+                    direction = 1;
+                }
+                break;
+            case "escape":
+                removeStuff(snakePos);
+                removeStuff(applePos);
+                printEnd(1, rownum);
+                process.stdout.write('\x1B[?25h');
+                process.exit(0);
+                break;
         }
     }
 });
@@ -183,6 +187,7 @@ function printUsage() {
     process.exit(-1);
 }
 
+//Remove that apple, which is eaten by the snake, from the array
 function removeApple(applePos, snakePos) {
     for (i = 0; i < applePos.length; i++) {
         if (applePos[i][0] === snakePos[0] && applePos[i][1] === snakePos[1]) {
@@ -272,6 +277,7 @@ function drawSnake(snakePos, isHead) {
     cursor.reset();
     process.stdout.write('\x1B[?25l');
 }
+
 //Print all the infos concerning the game
 function printInfos(snakeLength, speed, rownum) {
     process.stdout.write('\x1B[?25h');
@@ -281,7 +287,6 @@ function printInfos(snakeLength, speed, rownum) {
     cursor.goto(1, rownum + 2).write("Speed:\t" + speed);
     cursor.reset();
     process.stdout.write('\x1B[?25l');
-
 }
 
 //Remove stuff from one single coordinate
@@ -306,9 +311,8 @@ function removeStuff(anyPos) {
     process.stdout.write('\x1B[?25l');
 }
 
-//Print the end result: won 
+//Print the end result 
 function printEnd(endType, rownum) {
-
     process.stdout.write('\x1B[?25h');
     cursor.bg.hex("#100000").red();
     for (i = rownum - 5; i < rownum + 5; i++) {
